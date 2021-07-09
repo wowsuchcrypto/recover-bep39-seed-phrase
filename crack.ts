@@ -3,8 +3,8 @@ import fs from 'fs';
 import {mnemonicToSeed} from 'bip39';
 import {hdkey} from 'ethereumjs-wallet';
 
-const TOTAL_WORDS = 12;
-const MIN_STARTING_WORDS = 10;
+const TOTAL_WORDS = 12 as const;
+const MIN_STARTING_WORDS = 10 as const;
 
 /**
  * @return Always lowercase.
@@ -16,72 +16,74 @@ async function mnemonicToPublicAddress(mnemonic: string) {
 }
 
 function* permutationsForLast1Word() {
-    for (let i = 0; i < bep39Words.length; i++) {
-        yield firstWordsJoined + ' ' + bep39Words[i];
+    for (const option of bep39Words) {
+        yield `${firstWordsJoined} ${option}`;
     }
 }
 
 function* permutationsForLast2Words() {
-    for (let i = 0; i < bep39Words.length; i++) {
-        for (let ii = 0; ii < bep39Words.length; ii++) {
-            yield firstWordsJoined + ' ' + bep39Words[i] + ' ' + bep39Words[ii];
+    for (const option1 of bep39Words) {
+        for (const option2 of bep39Words) {
+            yield `${firstWordsJoined} ${option1} ${option2}`;
         }
     }
 }
 
-if (!process.argv[2]) {
-    console.error('No address given');
+function fail(message: string) {
+    console.error(message);
     process.exit(1);
+}
+
+if (!process.argv[2]) {
+    fail('No address given');
 }
 let address;
 try {
     address = Web3.utils.toChecksumAddress(process.argv[2]).toLowerCase();
 } catch (e) {
-    console.error('Address is invalid: ' + process.argv[2]);
-    process.exit(1);
+    fail(`Address is invalid: ${process.argv[2]}`);
 }
 
-const firstWordsJoined = process.argv[3] || '';
-if (!firstWordsJoined) {
-    console.error('No first words given');
-    process.exit(1);
+// First words may be given quoted or unquoted, so might be a single space-separated arg, or multiple args.
+const firstWords = (process.argv.slice(3) ?? []).join(' ').trim().split(/\s+/);
+if (firstWords.length === 0) {
+    fail('No first words given');
 }
-const firstWords = firstWordsJoined.split(' ');
+const firstWordsJoined = firstWords.join(' ');
 
 const wordsToCrack = TOTAL_WORDS - firstWords.length;
-let iterator;
+let iterator: Generator<string>;
 if (wordsToCrack === 1) {
     iterator = permutationsForLast1Word();
 } else if (wordsToCrack === 2) {
     iterator = permutationsForLast2Words();
 } else if (wordsToCrack <= 0) {
-    console.error(`Given ${firstWords.length} words - that is >= the total needed for a seed`);
-    process.exit(1);
+    fail(`Given ${firstWords.length} words - that is >= the total needed for a seed (${TOTAL_WORDS})`);
 } else {
-    console.error(`Only ${firstWords.length} seed words given - need at least ${MIN_STARTING_WORDS} to run in a realistic time`);
-    process.exit(1);
+    fail(`Only ${firstWords.length} seed words given - need at least ${MIN_STARTING_WORDS} to run in a realistic time`);
 }
-console.log('Words to crack:', wordsToCrack);
+console.log(`Given ${firstWords.length} words, need to crack ${wordsToCrack}`);
 
 // Ensure all given words are actually valid.
 const bep39Words = fs.readFileSync('./bep39-words.txt', 'utf-8').trim().split('\n');
+const bep39Length = bep39Words.length;
 for (const firstWord of firstWords) {
     if (!bep39Words.includes(firstWord)) {
-        console.error(`Given word "${firstWord}" but it is not a valid BEP39 word`);
-        process.exit(1);
+        fail(`Given word "${firstWord}" but it is not a valid BEP39 word`);
     }
 }
 
-const permutationsToCheck = bep39Words.length ** wordsToCrack;
-console.log('Possible permutations:', permutationsToCheck);
+const permutationsToCheck = bep39Length ** wordsToCrack;
+console.log(`Possible permutations: ${permutationsToCheck}`);
 
 (async () => {
     let checked = 0;
-    for (const mnemonic of iterator) {
+    for (const mnemonic of iterator!) {
         const thisAddress = await mnemonicToPublicAddress(mnemonic);
         const correct = thisAddress === address;
         if (correct) {
-            console.log(`Success! Full mnemonic for ${address} is: ${mnemonic}`);
+            console.log(`Success after ${checked} permutations!`);
+            console.log(`Mnemonic for ${address} is: ${mnemonic}`);
             process.exit(0);
         } else if (Math.random() < 0.0001) {
             // Occasionally log our progress.
@@ -91,6 +93,5 @@ console.log('Possible permutations:', permutationsToCheck);
         checked++;
     }
 
-    console.error('Failed to find the correct mnemonic');
-    process.exit(1);
+    fail('Failed to find the correct mnemonic');
 })();
