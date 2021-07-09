@@ -1,4 +1,3 @@
-import Web3 from 'web3';
 import fs from 'fs';
 import {mnemonicToSeed} from 'bip39';
 import {hdkey} from 'ethereumjs-wallet';
@@ -46,10 +45,8 @@ function fail(message: string) {
 if (!process.argv[2]) {
     fail('No address given');
 }
-let address;
-try {
-    address = Web3.utils.toChecksumAddress(process.argv[2]).toLowerCase();
-} catch (e) {
+const address = process.argv[2].toLowerCase();
+if (!/^0x[a-f0-9]{40}$/.test(address)) {
     fail(`Address is invalid: ${process.argv[2]}`);
 }
 
