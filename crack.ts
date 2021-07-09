@@ -6,13 +6,22 @@ import {hdkey} from 'ethereumjs-wallet';
 const TOTAL_WORDS = 12 as const;
 const MIN_STARTING_WORDS = 10 as const;
 
+async function mnemonicToWallet(mnemonic: string) {
+    const hdwallet = hdkey.fromMasterSeed(await mnemonicToSeed(mnemonic));
+    return hdwallet.derivePath("m/44'/60'/0'/0/0").getWallet();
+}
+
 /**
  * @return Always lowercase.
  */
 async function mnemonicToPublicAddress(mnemonic: string) {
-    const hdwallet = hdkey.fromMasterSeed(await mnemonicToSeed(mnemonic));
-    const wallet = hdwallet.derivePath("m/44'/60'/0'/0/0").getWallet();
+    const wallet = await mnemonicToWallet(mnemonic);
     return '0x' + wallet.getAddress().toString('hex').toLowerCase();
+}
+
+async function mnemonicToPrivateKey(mnemonic: string) {
+    const wallet = await mnemonicToWallet(mnemonic);
+    return wallet.getPrivateKey().toString('hex');
 }
 
 function* permutationsForLast1Word() {
@@ -84,11 +93,12 @@ console.log(`Possible permutations: ${permutationsToCheck}`);
         if (correct) {
             console.log(`Success after ${checked} permutations!`);
             console.log(`Mnemonic for ${address} is: ${mnemonic}`);
+            console.log(`Private key is: ${await mnemonicToPrivateKey(mnemonic)}`);
             process.exit(0);
         } else if (Math.random() < 0.0001) {
             // Occasionally log our progress.
             const percent = ((checked / permutationsToCheck) * 100).toFixed(2);
-            console.log(`Checked ${checked} permutations (${percent}%)... not ${mnemonic}`);
+            console.log(`Checked ${checked} permutations (${percent}%)... last checked: ${mnemonic}`);
         }
         checked++;
     }
