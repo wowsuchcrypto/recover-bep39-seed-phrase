@@ -98,7 +98,8 @@ console.log(`Possible permutations: ${permutationsToCheck}`);
         } else if (Math.random() < 0.0001) {
             // Occasionally log our progress.
             const percent = ((checked / permutationsToCheck) * 100).toFixed(2);
-            console.log(`Checked ${checked} permutations (${percent}%)... last checked: ${mnemonic}`);
+            const mnemonicShortened = mnemonic.replace(/^((?:\w+ ){3}).+((?: \w+){3})$/, '$1...$2');
+            console.log(`Checked ${checked} permutations (${percent}%); last checked: ${mnemonicShortened}`);
         }
         checked++;
     }
