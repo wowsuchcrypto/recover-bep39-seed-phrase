@@ -51,7 +51,10 @@ if (!/^0x[a-f0-9]{40}$/.test(address)) {
 }
 
 // First words may be given quoted or unquoted, so might be a single space-separated arg, or multiple args.
-const firstWords = (process.argv.slice(3) ?? []).join(' ').trim().split(/\s+/);
+const firstWords = (process.argv.slice(3) ?? [])
+    .join(' ')
+    .split(/\s+/)
+    .filter(w => w !== '');
 if (firstWords.length === 0) {
     fail('No first words given');
 }

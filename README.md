@@ -1,8 +1,8 @@
 # Recover BEP39 seed
 
-Given at least 10 words of a seed phrase (a.k.a. a "mnemonic"), this brute forces the remaining words. Currently only supports English seed phrases.
+Given at least 10 words of a seed phrase (a.k.a. a "mnemonic"), this brute forces the remaining words.
 
-If you want to recover a seed that was generated in another language, let me know.
+Currently only supports English seed phrases. If you want to recover a seed that was generated in another language, let me know.
 
 ## Install
 
